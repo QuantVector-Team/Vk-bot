@@ -3,6 +3,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import requests
 from datetime import datetime
+import ollama
 
 from config import TOKEN, GROUP_ID, ADMIN_ID, BACKEND_URL
 
@@ -79,16 +80,23 @@ def send(user_id, text, keyboard=None):
 
 def ask_ai(text):
     try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "qwen2.5:1.5b",
-                "prompt": f"Ты дружелюбная поддержка сервиса QuantVector. Отвечай на вопросы пользователя просто, понятно и как живой человек.\n\nВопрос пользователя: {text}",
-                "stream": False,
-                "keep_alive": "24h"
-            }
+        system_prompt = (
+            "Ты — реальный человек, сотрудник техподдержки сервиса QuantVector. "
+            "О компании: QuantVector — это платформа для алгоритмического трейдинга, запуска бектестов и анализа криптовалютного рынка. "
+            "ТВОИ СТРОГИЕ ПРАВИЛА: "
+            "1. НИКОГДА не говори, что ты искусственный интеллект, нейросеть, бот или ИИ. Ты — живой сотрудник поддержки. "
+            "2. Отвечай сразу и по делу. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ пустые вводные фразы вроде 'Здорово, что ты задал вопрос', 'Я рад помочь', 'Я понимаю'. "
+            "3. Отвечай кратко, вежливо и строго на русском языке.\n\n"
+            f"Вопрос пользователя: {text}\n"
+            "Твой ответ:"
         )
-        return response.json()["response"]
+
+        response = ollama.generate(
+            model="qwen2.5:1.5b",
+            prompt=system_prompt,
+            keep_alive="24h"
+        )
+        return response["response"]
     except Exception as e:
         print("AI ERROR:", e)
         return "⚠️ Ошибка AI. Напишите 'Оператор'"
@@ -309,12 +317,15 @@ for event in longpoll.listen():
             show_history(user_id)
 
         # ===== СТАТУС =====
+        
         elif text == "📡 Статус серверов":
+            send(user_id, "⏳ Проверяем связь с сервером...", back_keyboard())
             try:
-                requests.get("http://localhost:11434")
-                send(user_id, "🟢 Локальный ИИ (Ollama) работает стабильно", main_keyboard(user_id))
-            except:
-                send(user_id, "🔴 Локальный ИИ (Ollama) не отвечает", main_keyboard(user_id))
+                response = requests.get(f"{BACKEND_URL}", timeout=5, headers=HEADERS)
+
+                send(user_id, "🟢 Сервер работает стабильно", main_keyboard(user_id))
+            except Exception as e:
+                send(user_id, "🔴 Сервер не отвечает", main_keyboard(user_id))
 
         # ===== ПОМОЩЬ =====
         elif text == "❓ Помощь":
