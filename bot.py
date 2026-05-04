@@ -108,7 +108,6 @@ def show_history(user_id):
     per_page = 3 
 
     try:
-        # НОВАЯ СТРУКТУРА JSON ДЛЯ ИСТОРИИ
         payload = {
             "platform": "vk",
             "token": str(user_id),
@@ -244,20 +243,20 @@ for event in longpoll.listen():
             timeframe = user_data[user_id].get("timeframe", "1h")
             
             if "rsi" in user_input:
-                strategy_name = "RSI Oscillator"
+                strategy_name = "RSI_Oscillator"
                 params = {
                     "period": 14,
                     "buy_level": 30,
                     "sell_level": 70
                 }
             elif "sma" in user_input:
-                strategy_name = "SMA Cross"
+                strategy_name = "SMA_Cross"
                 params = {
                     "fast_period": 10,
                     "slow_period": 50
                 }
             else:
-                strategy_name = "RSI Oscillator"
+                strategy_name = "RSI_Oscillator"
                 params = {"period": 14, "buy_level": 30, "sell_level": 70}
 
             send(user_id, f"⏳ Сервер проводит бектест:\n🪙 {symbol}\n⏱ {timeframe}\n⚙️ {strategy_name}\n\nОжидайте...", back_keyboard())
@@ -265,10 +264,10 @@ for event in longpoll.listen():
             try:
                 payload = {
                     "platform": "vk",
-                    "token": str(user_id), 
+                    "vk_user_id": user_id, 
                     "need_chart": False,   
                     "settings": {
-                        "coin": symbol,  
+                        "symbol": symbol,  
                         "timeframe": timeframe,
                         "start_balance": 1000.0,
                         "fee_percent": 0.1
