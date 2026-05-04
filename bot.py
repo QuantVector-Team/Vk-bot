@@ -222,10 +222,11 @@ for event in longpoll.listen():
             user_states[user_id] = None
 
         # ===== АНАЛИЗ =====
+        
         elif text == "📊 Запустить анализ":
             user_states[user_id] = "WAIT_SYMBOL"
             user_data[user_id] = {} 
-            send(user_id, "1️⃣ Введите Имя монеты/тикера для бектеста (например, BTCUSDT):", back_keyboard())
+            send(user_id, "1️⃣ Введите тикер монеты для бектеста (например, BTCUSDT):", back_keyboard())
 
         elif user_states.get(user_id) == "WAIT_SYMBOL":
             user_data[user_id]["symbol"] = text.upper()
@@ -235,35 +236,46 @@ for event in longpoll.listen():
         elif user_states.get(user_id) == "WAIT_TIMEFRAME":
             user_data[user_id]["timeframe"] = text.lower()
             user_states[user_id] = "WAIT_STRATEGY"
-            send(user_id, "3️⃣ Введите название стратегии (например, RSI_Oscillator, SMA_Cross):", back_keyboard())
+            send(user_id, "3️⃣ Напишите стратегию (RSI или SMA):", back_keyboard())
 
         elif user_states.get(user_id) == "WAIT_STRATEGY":
-            strategy_name = text
+            user_input = text.lower()
             symbol = user_data[user_id].get("symbol", "UNKNOWN")
             timeframe = user_data[user_id].get("timeframe", "1h")
             
+            if "rsi" in user_input:
+                strategy_name = "RSI Oscillator"
+                params = {
+                    "period": 14,
+                    "buy_level": 30,
+                    "sell_level": 70
+                }
+            elif "sma" in user_input:
+                strategy_name = "SMA Cross"
+                params = {
+                    "fast_period": 10,
+                    "slow_period": 50
+                }
+            else:
+                strategy_name = "RSI Oscillator"
+                params = {"period": 14, "buy_level": 30, "sell_level": 70}
+
             send(user_id, f"⏳ Сервер проводит бектест:\n🪙 {symbol}\n⏱ {timeframe}\n⚙️ {strategy_name}\n\nОжидайте...", back_keyboard())
 
             try:
                 payload = {
                     "platform": "vk",
                     "token": str(user_id), 
-                    "need_chart": False,  
+                    "need_chart": False,   
                     "settings": {
-                        "symbol": symbol,
+                        "coin": symbol,  
                         "timeframe": timeframe,
                         "start_balance": 1000.0,
                         "fee_percent": 0.1
                     },
                     "strategy": {
-                        "name": strategy_name,
-                        "params": {
-                            "rsi_period": 14,
-                            "fast_period": 10,
-                            "slow_period": 50,
-                            "buy_level": 30,
-                            "sell_level": 70
-                        }
+                        "name": strategy_name,  
+                        "params": params     
                     }
                 }
                 
@@ -288,7 +300,7 @@ for event in longpoll.listen():
                         )
                     elif data.get("status") == "error":
                         error_msg = data.get("message", "Неизвестная ошибка")
-                        result = f"❌ Сервер отклонил бектест.\nПричина: {error_msg}"
+                        result = f"❌ Сервер отклонил бектест.\nПричина: {error_msg}\nОтвет: {data}"
                     else:
                         result = "❌ Неизвестный ответ от сервера."
                 else:
@@ -338,6 +350,7 @@ for event in longpoll.listen():
                  main_keyboard(user_id))
 
         # ===== ПОДДЕРЖКА =====
+        
         elif text == "🛠 Тех. поддержка":
             user_states[user_id] = "AI_SUPPORT"
             send(user_id, "🤖 Сейчас вы общаетесь с AI-помощником QuantVector.\nПожалуйста, задайте ваш вопрос.\n\n(Если вы хотите связаться с человеком, напишите слово 'Оператор')", back_keyboard())
@@ -361,6 +374,7 @@ for event in longpoll.listen():
             user_states[user_id] = None
 
         # ===== АДМИН =====
+        
         elif text == "⚙️ Команды" and user_id == ADMIN_ID:
             send(user_id,
                  "📘 Команды:\n/reply id текст",
@@ -375,5 +389,6 @@ for event in longpoll.listen():
                 send(user_id, "❌ Формат: /reply user_id текст")
 
         # ===== FALLBACK =====
+        
         else:
             send(user_id, "❓ Для возврата в меню нажмите 'Назад' или напишите 'Начать'", main_keyboard(user_id))
